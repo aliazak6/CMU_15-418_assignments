@@ -117,7 +117,27 @@ typedef struct {
 void* workerThreadStart(void* threadArgs) {
 
     WorkerArgs* args = static_cast<WorkerArgs*>(threadArgs);
-
+    int numThreads = args->numThreads;
+    int threadId = args->threadId;
+    float x0 = args->x0, x1 = args->x1, y0 = args->y0, y1 = args->y1;
+    int width = args->width, height = args->height;
+    float dx = (x1 - x0) / width;
+    float dy = (y1 - y0) / height;
+    int startRow = y0;
+    int totalRows = 256;
+    int endRow = startRow + totalRows;
+    int maxIterations = args->maxIterations;
+  
+    
+    for (int j = startRow; j < endRow; j++) {
+        for (int i = 0; i < width; ++i) {
+            float x = x0 + i * dx;
+            float y = y0 + j * dy;
+            int index = (j * width + i);
+            args->output[index] = mandel(x, y, maxIterations);
+        }
+    }
+    
     // TODO: Implement worker thread here.
     return NULL;
 }
@@ -146,6 +166,15 @@ void mandelbrotThread(
 
     for (int i=0; i<numThreads; i++) {
         args[i].threadId = i;
+        args[i].numThreads = numThreads;
+        args[i].x1 = x1;
+        args[i].x0 = x0;
+        args[i].width = width;
+        args[i].height = height;
+        args[i].y1 = height/numThreads*(i+1);
+        args[i].y0 = height/numThreads*(i);
+        args[i].maxIterations = maxIterations;
+        args[i].output = output;
 	// TODO: Set thread arguments here
     }
 
