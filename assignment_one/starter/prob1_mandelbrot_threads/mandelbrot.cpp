@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <pthread.h>
+#include <algorithm>
 
 // Use this code to time your threads
 #include "CycleTimer.h"
@@ -123,12 +124,10 @@ void* workerThreadStart(void* threadArgs) {
     int width = args->width, height = args->height;
     float dx = (x1 - x0) / width;
     float dy = (y1 - y0) / height;
-    int startRow = y0;
-    int totalRows = 256;
-    int endRow = startRow + totalRows;
+    int startRow = (height)/numThreads*(threadId);
+    int endRow = (height+1)/numThreads*(threadId+1);
+    if (threadId == 15) endRow = height;
     int maxIterations = args->maxIterations;
-  
-    
     for (int j = startRow; j < endRow; j++) {
         for (int i = 0; i < width; ++i) {
             float x = x0 + i * dx;
@@ -171,21 +170,29 @@ void mandelbrotThread(
         args[i].x0 = x0;
         args[i].width = width;
         args[i].height = height;
-        args[i].y1 = height/numThreads*(i+1);
-        args[i].y0 = height/numThreads*(i);
+        args[i].y1 = y1;
+        args[i].y0 = y0;
         args[i].maxIterations = maxIterations;
         args[i].output = output;
 	// TODO: Set thread arguments here
     }
-
     // Fire up the worker threads.  Note that numThreads-1 pthreads
     // are created and the main app thread is used as a worker as
     // well.
-
-    for (int i=1; i<numThreads; i++)
+    double minThread = 1e30;
+    for (int i=1; i<numThreads; i++){
+    //    double startTime = CycleTimer::currentSeconds();
         pthread_create(&workers[i], NULL, workerThreadStart, &args[i]);
-
+    //    double endTime = CycleTimer::currentSeconds();
+    //    minThread = std::min(minThread, endTime - startTime);
+    //    printf("[mandelbrot thread id [%d]]:\t\t[%.3f] ms\n",args[i].threadId, minThread * 1000);
+    }
+        
+    //double startTime = CycleTimer::currentSeconds();
     workerThreadStart(&args[0]);
+    //double endTime = CycleTimer::currentSeconds();
+    //minThread = std::min(minThread, endTime - startTime);
+    //printf("[mandelbrot thread id [%d]]:\t\t[%.3f] ms\n",0, minThread * 1000);
 
     // wait for worker threads to complete
     for (int i=1; i<numThreads; i++)
