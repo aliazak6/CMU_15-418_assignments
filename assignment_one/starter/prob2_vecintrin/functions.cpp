@@ -126,7 +126,10 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
 		}
 		// Write results back to memory
 		_cmu418_vstore_float(output+i, result, maskAll);
-		
+		if(N < VECTOR_WIDTH || N%VECTOR_WIDTH!=0){
+			__cmu418_vec_float zerofloat = _cmu418_vset_float(0.0f);
+			_cmu418_vstore_float(output+N,zerofloat,maskAll);
+		}
     }
 }
 
@@ -139,11 +142,39 @@ float arraySumSerial(float* values, int N) {
 
     return sum;
 }
-
+#include <iostream>
 // Assume N % VECTOR_WIDTH == 0
 // Assume VECTOR_WIDTH is a power of 2
 float arraySumVector(float* values, int N) {
-    // TODO: Implement your vectorized version here
-    // ...
-    return 0.f;
+	float output = 0.f;
+	__cmu418_vec_float x;
+	__cmu418_vec_float result;
+    __cmu418_vec_int zero = _cmu418_vset_int(0);
+	__cmu418_vec_int ones = _cmu418_vset_int(1);
+    __cmu418_mask maskAll = _cmu418_init_ones();
+	__cmu418_mask maskLeftHalf = _cmu418_init_ones(4);
+	__cmu418_mask maskRightHalf = _cmu418_mask_not(maskLeftHalf);
+	result = _cmu418_vset_float(0.f);
+	// All zeros
+    for (int i=0; i<N; i+=VECTOR_WIDTH) {
+		x = _cmu418_vset_float(0.f);
+		// Initialize result to 0.0
+	
+		// Load vector of values from contiguous memory addresses
+		_cmu418_vload_float(x, values+i, maskAll);               // x = values[i];
+		
+		_cmu418_hadd_float(x,x);		// sum += values[i];
+		_cmu418_interleave_float(x,x);
+
+		_cmu418_vadd_float(result,result,x,maskRightHalf);
+	
+    }
+
+
+	for(int i = 0 ; i < log2(VECTOR_WIDTH)-1; i++){
+		_cmu418_hadd_float(result,result);		
+		_cmu418_interleave_float(result,result);
+	}
+	output = result.value[VECTOR_WIDTH-1];
+    return output;
 }
