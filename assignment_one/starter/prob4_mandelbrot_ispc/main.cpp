@@ -279,8 +279,10 @@ int main(int argc, char** argv) {
     }
 
     printf("\t\t\t\t(%.2fx speedup from ISPC)\n", minSerial/minISPC);
-    if (parOK)
-	printf("\t\t\t\t(%.2fx speedup from ISPC+parallelism)\n", minSerial/minISPCPar);
+    if (parOK){
+        printf("\t\t\t\t(%.2fx speedup from ISPC+parallelism)\n", minSerial/minISPCPar);
+        printf("\t\t\t\t(%.2fx speedup over ISPC)\n", minISPC/minISPCPar);
+    }
     if (useTasks) {
         printf("\t\t\t\t(%.2fx speedup from task ISPC)\n", minSerial/minTaskISPC);
     }

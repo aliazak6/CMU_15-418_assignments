@@ -74,7 +74,6 @@ static inline void mandel_par2(float c_re0, float c_im0, float c_re1, float c_im
     *iters0 = done0 ? icount0 : i;
     *iters1 = done1 ? icount1 : i;
 }
-
 // ISPC code to do the Mandelbrot computation across
 // an entire array, using two-way parallelism to process two rows at a time
 export void mandelbrot_ispc_par2(uniform float x0, uniform float y0, 
@@ -85,7 +84,35 @@ export void mandelbrot_ispc_par2(uniform float x0, uniform float y0,
 {
     uniform float dx = (x1 - x0) / width;
     uniform float dy = (y1 - y0) / height;
-
+    
+    float y_first,y_second,index_first,index_second,x; 
+    int idx_second;
+    foreach (j = 0 ... height/2+1,i = 0 ... width) {
+        idx_second = j+height/2;
+        y_first = y0 + j * dy;
+        y_second = y0 + idx_second * dy;
+        x = x0 + i * dx;
+        index_first = j * width + i;
+        index_second = idx_second * width + i;
+        mandel_par2(x, y_first, x, y_second, maxIterations, &output[index_first], &output[index_second]);
+    }
+    
+    /*
+    float y_first,y_second,index_first,index_second,x; 
+    int idx_first,idx_second;
+    for(uniform int j = 0; j < height; j+=2*programCount) {
+        idx_first = (j+programIndex*2);
+        idx_second = (j+programIndex*2+1);
+        y_first = y0 + idx_first  * dy;
+        y_second = y0 + idx_second * dy;
+        for(uniform int i = 0; i < width; i++) {
+            x = x0 + i * dx;
+            index_first = idx_first * width + i;
+            index_second = idx_second * width + i;
+            mandel_par2(x, y_first, x, y_second, maxIterations, &output[index_first], &output[index_second]);
+        }
+    }
+    */
     // TODO: Write ISPC code that will use function mandel_par2 to process
     // two rows on each pass.
     // You should use the foreach construct.
@@ -95,8 +122,8 @@ export void mandelbrot_ispc_par2(uniform float x0, uniform float y0,
 }
 
 // TODO: Try different block sizes
-#define BLOCK_WIDTH  800
-#define BLOCK_HEIGHT 600
+#define BLOCK_WIDTH  480//1600
+#define BLOCK_HEIGHT 10//1200
 
 // slightly different kernel to support tasking
 task void mandelbrot_ispc_task(uniform float x0, uniform float y0, 
@@ -135,7 +162,7 @@ export void mandelbrot_ispc_withtasks(uniform float x0, uniform float y0,
 {
 
     // TODO: Figure out how many tasks to launch
-    uniform int taskCount = 4;
+    uniform int taskCount = (1600*1200)/(BLOCK_WIDTH*BLOCK_HEIGHT);//400
 
     // create a bunch of tasks
     launch[taskCount] mandelbrot_ispc_task(x0, y0, x1, y1,
