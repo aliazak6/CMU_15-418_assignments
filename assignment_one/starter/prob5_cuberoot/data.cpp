@@ -14,7 +14,7 @@ void initGood(float *values, int N) {
     for (int i=0; i<N; i++)
     {
         // TODO: Choose data values that will yield high speedup
-        values[i] = 1.f;
+        values[i] = -1.9999999f;
     }
 }
 
@@ -23,7 +23,7 @@ void initBad(float *values, int N) {
     for (int i=0; i<N; i++)
     {
         // TODO: Choose data values that will yield low speedup
-        values[i] = 1.f;
+        values[i] = 1.0f;
     }
 }
 
