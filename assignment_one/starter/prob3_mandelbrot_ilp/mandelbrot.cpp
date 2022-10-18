@@ -54,11 +54,12 @@ int mandel_ref(float c_re, float c_im, int count)
     int i;
 
     for (i = 0; i < count; ++i) {
-
-        if (z_re * z_re + z_im * z_im > 4.f)
+        float temp_z_im = z_im*z_im;
+        float temp_z_re = z_re*z_re;
+        if (temp_z_re + temp_z_im > 4.f)
             break;
-
-        float new_re = z_re*z_re - z_im*z_im;
+        
+        float new_re = temp_z_re - temp_z_im;
         float new_im = 2.f * z_re * z_im;
         z_re = c_re + new_re;
         z_im = c_im + new_im;
@@ -76,6 +77,7 @@ int mandel_ref(float c_re, float c_im, int count)
     const int unroll = ufactor;					               \
     float z_re[unroll], z_im[unroll];                                          \
     float new_re[unroll], new_im[unroll];			               \
+    float temp_z_re[unroll], temp_z_im[unroll];                      \ 
     bool done[unroll];                                                         \
     int icount[unroll];                                                        \
     for (int k = 0; k < unroll; k++) {                                         \
@@ -88,14 +90,16 @@ int mandel_ref(float c_re, float c_im, int count)
     for (i = 0; i < count; ++i) {                                              \
 	bool allDone = true;                                                   \
 	for (int k = 0; k < unroll; k++) {                                     \
+        temp_z_re[k] = z_re[k]*z_re[k];                                      \
+        temp_z_im[k] = z_im[k]*z_im[k];                                      \
 	    icount[k] = done[k] ? icount[k] : i;                               \
-	    done[k] = done[k] | (z_re[k] * z_re[k] + z_im[k] * z_im[k] > 4.f); \
+	    done[k] = done[k] | (temp_z_re[k] + temp_z_im[k] > 4.f); \
 	    allDone = allDone & done[k];                                       \
 	}                                                                      \
 	if (allDone)                                                           \
 	    break;                                                             \
 	for (int k = 0; k < unroll; k++) {                                     \
-	    new_re[k] = z_re[k] * z_re[k] - z_im[k] * z_im[k];                 \
+	    new_re[k] = temp_z_re[k] - temp_z_im[k];                 \
 	    new_im[k] = 2.f * z_re[k] * z_im[k];                               \
 	    z_re[k] = c_re[k] + new_re[k];                                     \
 	    z_im[k] = c_im[k] + new_im[k];                                     \
