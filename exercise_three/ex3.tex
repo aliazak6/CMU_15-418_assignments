@@ -1,0 +1,170 @@
+%% You can use this file to create your answer for Exercise 1.  
+%% Fill in the places labeled by comments.
+%% Generate a PDF document by with the command `pdflatex ex1'.
+
+\documentclass[11pt]{article}
+
+
+\usepackage{times}
+\usepackage{listings}
+\usepackage{enumerate}
+\usepackage{courier}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{verbatim}
+
+\input{config-ex3}
+
+%% Page layout
+\oddsidemargin 0pt
+\evensidemargin 0pt
+\textheight 600pt
+\textwidth 469pt
+\setlength{\parindent}{0em}
+\setlength{\parskip}{1ex}
+
+%% Colored hyperlink 
+\newcommand{\cref}[2]{\href{#1}{\color{blue}#2}}
+
+%% Customization to listing
+\lstset{basicstyle=\ttfamily,language=C++,morekeywords={uniform,foreach}}
+
+%% Enumerate environment with alphabetic labels
+\newenvironment{choice}{\begin{enumerate}[A.]}{\end{enumerate}}
+%% Environment for supplying answers to problem
+\newenvironment{answer}{\begin{minipage}[c][1.5in]{\textwidth}}{\end{minipage}}
+
+\begin{document}
+\begin{flushright}
+
+\end{flushright}
+\vspace*{0.3in}
+\begin{center}
+\LARGE
+15-418/618 \thisterm{} \\
+Exercise 3
+\\ 
+\end{center}
+
+\begin{center}
+\Large
+\begin{tabular}{lll}
+\hline
+Assigned: & \dateassigned{} \\
+Due: &  \datedueregistered{}, 11:00~pm\\
+\hline
+\end{tabular}
+\end{center}
+
+\section*{Overview}
+
+This exercise is designed to help you better understand the lecture
+material and be prepared for the style of questions you will get on
+the exams.  The questions are designed to have simple answers.  Any
+explanation you provide can be brief---at most 3 sentences.
+You should work on this on your own, since that's how things will be when
+you take an exam.
+
+You will submit an electronic version of this assignment to Canvas as
+a PDF file.  For those of you familiar with the \LaTeX{} text formatter, you can download the template and configuration files at:
+\begin{center}
+  \cref{\actualcoursehome/exercises/config-ex3.tex}{\visiblecoursehome/exercises/config-ex3.tex}\\
+  \cref{\actualcoursehome/exercises/ex3.tex}{\visiblecoursehome/exercises/ex3.tex}
+\end{center}
+Instructions for how to use this template are included as comments in the file.  Otherwise,
+you can use this PDF document as your starting point.
+You can either: 1) electronically modify the PDF, or 2) print it
+out, write your answers by hand, and scan it.  In any case, we expect
+your solution to follow the formatting of this document.
+
+\newpage
+\section*{Problem 1: GPU Programming}
+
+Your friends have been hearing that you now know how to program a GPU
+and take advantage of all its capabilities. Eager to bask in your
+knowledge, they come to you with different problems that they think
+might benefit from GPU parallelism.
+
+One such friend heard that GPUs can launch thousands of parallel
+``threads.'' They want to identify the indices of a large array of
+$n$ elements in an even larger array (of size $m$) using binary search. They suggest to
+you that every thread on the GPU will be searching for one element in
+the array, so that with say, 1024 threads, they'll be able to search
+get near $1024\times$ performance.
+
+\begin{choice}
+\item
+First off, how do you explain that
+threads on a CPU are not the same as threads on a GPU? (What's the
+difference between the implementation of p\_threads and CUDA threads?)
+Give at least 3 important distinctions.
+
+
+\begin{answer}
+\begin{itemize}
+\item CPU threads are not actual hardware implementations they are programming abstractions.
+\item GPU threads are more light-weight compared to CPU threads because of the hardware implementation. Thus switching between threads are more costly on CPU.
+\item GPU threads run as groups(warp) while CPU threads run independently.
+\end{itemize} 
+
+\end{answer}
+
+\item
+Still convinced of their binary search's potential, they write this kernel function.
+
+\begin{lstlisting}[language=C,basicstyle=\ttfamily]
+// Array S and R are of size n
+// Array A is of size m, with its elements ordered.
+__global__ void cudaBinarySearch(int n, int m, int *S, int *A, int *R) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    if (i >= n) return;
+    
+    int search = S[i];
+    int left = 0, right = m - 1, middle = 0;
+    R[i] = -1;  // In case not found
+    // Binary Search
+    while (left <= right) {
+      middle = left + (right - left) / 2;      
+      if (search < A[middle])
+        right = middle - 1;
+      else if (search > A[middle])
+        left = middle + 1;
+      else
+        R[i] = middle;
+        break;
+    }
+}
+\end{lstlisting}
+
+After testing it out, they find that they get very little performance
+gain relative to the number of threads that they are running. Sullenly,
+they come back to you and ask where they went wrong. Give at least
+two reasons for this code's poor performance.
+
+\begin{answer}
+\begin{itemize}
+\item The code is not parallelized. The threads are looking for value in serialized way inside while loop.
+\item The code is not optimized for GPU. The code is not using shared memory for arrays S and R. 
+\end{itemize}
+\end{answer}
+\end{choice}
+
+\newpage
+\section*{Problem 2: Task Assignment for OCEAN}
+Recall that we discussed a version of the OCEAN application that uses a static assignment strategy where it assigns blocks of contiguous rows to threads. In this problem, we will ask you to compare that static approach with another task assignment approach for OCEAN (one that is dynamic). Similar to exercise 2, as you discuss the likely differences in performance between these approaches, please relate your answers to the \textbf{three goals} for task assignment (i.e. \textbf{balance the workload, maximize locality, and minimize extra work}) as well as discussing the likely impact on the components of \textbf{per-thread execution profiles} (like the ones seen on slides 12 and 22 in Lecture 9).
+
+\begin{choice}
+
+
+\item \textbf{Static versus Coarse-Grained Dynamic Assignment for OCEAN}\\
+Consider a different hypothetical implementation of OCEAN that uses distributed task queues to dynamically assign individual rows to threads at runtime. Each task in the task queues would represent an entire row of the matrix. Assume that equal numbers of tasks would be assigned to each task queue at the start of a time step (with the same initial partitioning as the static assignment: i.e. contiguous blocks of rows), and that task stealing would be used whenever a processor runs out of work. Using the metrics above, provide a qualitative discussion of the likely performance differences between these two versions of OCEAN (i.e. static versus coarse-grained dynamic).
+
+\begin{answer}
+Wokload balance would be better due to dynamic runtime assignment.  \newline
+However, locality would be worse due to the fact that the threads are not working on contiguous rows. \newline 
+Extra work would be more due to the fact that the threads need to steal work from queues. \newline
+\end{answer}
+
+\end{choice}
+
+\end{document}
