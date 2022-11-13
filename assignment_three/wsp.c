@@ -7,7 +7,8 @@
 #include <error.h>
 #include <limits.h>
 #include <pthread.h>
-
+#include <omp.h>
+#include <time.h>
 // TODO: You may find this helpful.
 //#include <omp.h>
 
@@ -103,6 +104,38 @@ void wsp_print_result() {
 }
 
 
+void wsp_iterate(path_t* currentPath,int city_count) {
+  int skip_flag = 0;
+  int cost = 0;
+  for(int i=0; i<NCITIES; i++) { // loop to iterate over different cities
+    skip_flag = 0;
+    cost = 0;
+    for(int j=0; j<city_count; j++) { // loop to iterate over cities in current path
+      if(currentPath->path[j] == i) { // if city is already in path, skip it
+        skip_flag = 1;
+        break;
+      }
+    }
+    if(skip_flag == 1) { // if city is already in path, skip it
+      continue;
+    }
+    currentPath->path[city_count] = i;
+    cost = get_dist(currentPath->path[i-1],currentPath->path[i]);
+    if(cost + currentPath->cost <= bestPath->cost){
+      currentPath->cost += cost;
+      wsp_iterate(currentPath, city_count+1);  
+    } 
+    if(city_count == NCITIES) {
+      if(currentPath->cost < bestPath->cost) {
+        bestPath->cost = currentPath->cost;
+        for(int i=0; i<NCITIES; i++) {
+          bestPath->path[i] = currentPath->path[i];
+        }
+      }
+    } 
+  }
+}
+
 void wsp_start() {
 
   // TODO: try finding a better path.
@@ -111,11 +144,25 @@ void wsp_start() {
     bestPath->path[cityID] = cityID;
     if(cityID>0) bestPath->cost += get_dist(bestPath->path[cityID-1],bestPath->path[cityID]);
   }
+  int root,city_count;
+  path_t* currentPath = (path_t*)malloc(sizeof(path_t));
+  currentPath->cost = 0;
+  currentPath->path = (city_t*)calloc(NCITIES, sizeof(city_t));
+  for(cityID=0; cityID < NCITIES; cityID++) { // loop to iterate over different root nodes
+    root = cityID; // private
+    currentPath->path[0] = root; //private
+    city_count = 1; // private
+    wsp_iterate(currentPath,city_count);
+  }
+
 
   return;
 }
 
 int main(int argc, char **argv) {
+  for(int i = 0; i < argc; i++) {
+    printf("argv[%d] = %s\n", i, argv[i]);
+  }
   if(argc < 4 || strcmp(argv[1], "-p") != 0) error_exit("Expecting two arguments: -p [processor count] and [file name]\n");
   NCORES = atoi(argv[2]);
   if(NCORES < 1) error_exit("Illegal core count: %d\n", NCORES);
@@ -144,11 +191,10 @@ int main(int argc, char **argv) {
   bestPath = (path_t*)malloc(sizeof(path_t));
   bestPath->cost = 0;
   bestPath->path = (city_t*)calloc(NCITIES, sizeof(city_t));
-  struct timespec before, after;
-  clock_gettime(CLOCK_REALTIME, &before);
+  double before = omp_get_wtime();
   wsp_start();
-  clock_gettime(CLOCK_REALTIME, &after);
-  double delta_ms = (double)(after.tv_sec - before.tv_sec) * 1000.0 + (after.tv_nsec - before.tv_nsec) / 1000000.0;
+  double after = omp_get_wtime();
+  double delta_ms = (after - before) * 1000.0 + (after - before) / 1000000.0;
   putchar('\n');
   printf("============ Time ============\n");
   printf("Time: %.3f ms (%.3f s)\n", delta_ms, delta_ms / 1000.0);
