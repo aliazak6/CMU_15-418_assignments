@@ -107,11 +107,13 @@ void wsp_print_result() {
 path_t wsp_iterate(path_t currentPath,int city_count) {
 	int skip_flag = 0;
 	int cost = 0;
+	int new_cost = 0;
+	#pragma omp parallel for firstprivate(cost,new_cost,skip_flag)
 	for(int i=0; i<NCITIES; i++) { // loop to iterate over different cities
 		/* PART WE DECIDE TO ITERATE OR NOT*/
 		skip_flag = 0;
 		cost = 0;
-
+		new_cost = 0;
 		for(int j=0; j<city_count; j++) { // loop to iterate over cities in current path
 			if(currentPath.path[j] == i) { // if city is already in path, skip it
 				skip_flag = 1;
@@ -123,11 +125,8 @@ path_t wsp_iterate(path_t currentPath,int city_count) {
 		}
 		/*********************************/
 		/* PART WE ITERATE OVER*/
-		currentPath.cost = 0;
-		for(int k = 0; k<city_count-1; k++) { // loop to iterate over cities in current path
-			currentPath.cost += get_dist(currentPath.path[k],currentPath.path[k+1]);
-		}
-		cost = currentPath.cost + get_dist(currentPath.path[city_count-1],i); // add cost of current city to path cost
+		new_cost = get_dist(currentPath.path[city_count-1],i);
+		cost = currentPath.cost + new_cost; // add cost of current city to path cost
 		if(cost > bestPath->cost){
 			continue;
 		}else{
@@ -139,14 +138,15 @@ path_t wsp_iterate(path_t currentPath,int city_count) {
 					for(int j=0; j<NCITIES; j++) {
 						bestPath->path[j] = currentPath.path[j];
 					}
-				}			
+				}
+				currentPath.cost-= new_cost;			
 			}else{
 				currentPath = wsp_iterate(currentPath,city_count+1);
 			}
 		}
 		/*********************************/		
 	}
-	currentPath.cost-= get_dist(currentPath.path[city_count-1],currentPath.path[city_count]);
+	currentPath.cost-=  get_dist(currentPath.path[city_count-1],currentPath.path[ city_count-2]);;
 	return currentPath;
 }	
 
@@ -161,7 +161,9 @@ void wsp_start() {
 	int root,city_count;
 	path_t currentPath ;
 	currentPath.path = (city_t*)calloc(NCITIES, sizeof(city_t));
+	#pragma omp parallel for private(currentPath,city_count,root) schedule(static)
 	for(cityID=0; cityID < NCITIES; cityID++) { // loop to iterate over different root nodes
+		currentPath.path = (city_t*)calloc(NCITIES, sizeof(city_t));
 		root = cityID; // private
 		currentPath.path[0] = root; //private
 		currentPath.cost = 0; //private
