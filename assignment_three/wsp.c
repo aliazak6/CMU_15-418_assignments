@@ -110,10 +110,10 @@ path_t wsp_iterate(path_t currentPath,int city_count) {
 	int new_cost = 0;
 	#pragma omp parallel for firstprivate(cost,new_cost,skip_flag)
 	for(int i=0; i<NCITIES; i++) { // loop to iterate over different cities
-		/* PART WE DECIDE TO ITERATE OR NOT*/
-		skip_flag = 0;
 		cost = 0;
 		new_cost = 0;
+		/* PART WE DECIDE TO ITERATE OR NOT*/
+		skip_flag = 0;
 		for(int j=0; j<city_count; j++) { // loop to iterate over cities in current path
 			if(currentPath.path[j] == i) { // if city is already in path, skip it
 				skip_flag = 1;
@@ -146,7 +146,8 @@ path_t wsp_iterate(path_t currentPath,int city_count) {
 		}
 		/*********************************/		
 	}
-	currentPath.cost-=  get_dist(currentPath.path[city_count-1],currentPath.path[ city_count-2]);;
+	currentPath.cost-=  get_dist(currentPath.path[city_count-1],currentPath.path[ city_count-2]);
+	
 	return currentPath;
 }	
 
@@ -161,7 +162,7 @@ void wsp_start() {
 	int root,city_count;
 	path_t currentPath ;
 	currentPath.path = (city_t*)calloc(NCITIES, sizeof(city_t));
-	#pragma omp parallel for private(currentPath,city_count,root) schedule(static)
+	#pragma omp parallel private(currentPath,city_count,root) shared(bestPath)
 	for(cityID=0; cityID < NCITIES; cityID++) { // loop to iterate over different root nodes
 		currentPath.path = (city_t*)calloc(NCITIES, sizeof(city_t));
 		root = cityID; // private
@@ -177,6 +178,7 @@ int main(int argc, char **argv) {
 	if(argc < 4 || strcmp(argv[1], "-p") != 0) error_exit("Expecting two arguments: -p [processor count] and [file name]\n");
 	NCORES = atoi(argv[2]);
 	if(NCORES < 1) error_exit("Illegal core count: %d\n", NCORES);
+	omp_set_num_threads(NCORES);
 	char *filename = argv[3];
 	FILE *fp = fopen(filename, "r");
 	if(fp == NULL) error_exit("Failed to open input file \"%s\"\n", filename);
