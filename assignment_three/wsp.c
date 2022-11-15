@@ -104,7 +104,7 @@ void wsp_print_result() {
 }
 
 
-path_t wsp_iterate(path_t currentPath,int city_count) {
+path_t wsp_recurse(path_t currentPath,int city_count) {
 	int skip_flag = 0;
 	int cost = 0;
 	int new_cost = 0;
@@ -141,7 +141,7 @@ path_t wsp_iterate(path_t currentPath,int city_count) {
 				}
 				currentPath.cost-= new_cost;			
 			}else{
-				currentPath = wsp_iterate(currentPath,city_count+1);
+				currentPath = wsp_recurse(currentPath,city_count+1);
 			}
 		}
 		/*********************************/		
@@ -162,14 +162,14 @@ void wsp_start() {
 	int root,city_count;
 	path_t currentPath ;
 	currentPath.path = (city_t*)calloc(NCITIES, sizeof(city_t));
-	#pragma omp parallel private(currentPath,city_count,root) shared(bestPath)
+	#pragma omp parallel for default(none) private(currentPath,city_count,root) shared(bestPath,NCITIES)
 	for(cityID=0; cityID < NCITIES; cityID++) { // loop to iterate over different root nodes
 		currentPath.path = (city_t*)calloc(NCITIES, sizeof(city_t));
 		root = cityID; // private
 		currentPath.path[0] = root; //private
 		currentPath.cost = 0; //private
 		city_count = 1; // private
-		wsp_iterate(currentPath,city_count);
+		wsp_recurse(currentPath,city_count);
 	}
 
 }
