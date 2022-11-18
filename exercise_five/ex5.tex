@@ -1,0 +1,237 @@
+%% You can use this file to create your answer for Exercise 1.  
+%% Fill in the places labeled by comments.
+%% Generate a PDF document by with the command `pdflatex ex1'.
+
+\documentclass[11pt]{article}
+
+
+\usepackage{times}
+\usepackage{listings}
+\usepackage{enumerate}
+\usepackage{courier}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+
+\input{config-ex5}
+
+%% Page layout
+\oddsidemargin 0pt
+\evensidemargin 0pt
+\textheight 600pt
+\textwidth 469pt
+\setlength{\parindent}{0em}
+\setlength{\parskip}{1ex}
+
+%% Colored hyperlink 
+\newcommand{\cref}[2]{\href{#1}{\color{blue}#2}}
+
+%% Customization to listing
+\lstset{basicstyle=\ttfamily\small,language=C,morekeywords={cilk_synch,cilk_spawn}}
+
+%% Enumerate environment with alphabetic labels
+\newenvironment{choice}{\begin{enumerate}[A.]}{\end{enumerate}}
+%% Environment for supplying answers to problem
+\newenvironment{answer}{\begin{minipage}[c][1.5in]{\textwidth}}{\end{minipage}}
+
+
+\begin{document}
+                          
+\vspace*{0.3in}                            
+\begin{center}
+\LARGE
+15-418/618 \thisterm{} \\
+Exercise 5
+\end{center}
+
+\begin{center}
+\Large        
+\begin{tabular}{ll}
+\hline             
+Assigned: & \dateassigned{}  \\
+Due: &  \datedue{}, 11:00~pm  \\
+\hline       
+\end{tabular}
+\end{center} 
+
+\section*{Overview}
+
+This exercise is designed to help you better understand the lecture
+material and be prepared for the style of questions you will get on
+the exams.  The questions are designed to have simple answers.  Any
+explanation you provide can be brief---at most 3 sentences.  You
+should work on this on your own, since that's how things will be when
+you take an exam.
+
+You will submit an electronic version of this assignment to Canvas 
+as a PDF file.  For those of you familiar with the \LaTeX{} text 
+formatter, you can download the template and configuation files at: 
+\begin{center} 
+  \cref{\actualcoursehome/exercises/ex5.tex}{\visiblecoursehome/exercises/ex5.tex}\\
+  \cref{\actualcoursehome/exercises/config-ex5.tex}{\visiblecoursehome/exercises/config-ex5.tex}
+\end{center} 
+Instructions for how to use this template are included as comments in 
+the file.  Otherwise, you can use this PDF document as your starting 
+point.  You can either: 1) electronically modify the PDF, or 2) print 
+it out, write your answers by hand, and scan it.  In any case, we 
+expect your solution to follow the formatting of this document. 
+
+\newpage 
+\section*{Problem 1: Memory Consistency}
+Assume the following program segments are executed on three processors of a
+multiprocessor machine. Initially before execution, all variables are equal to 0.
+\begin{center}
+\begin{tabular}{llcllcll}
+\multicolumn{2}{c}{P1} & \makebox[0.5in]{} &
+\multicolumn{2}{c}{P2} & \makebox[0.5in]{} &
+\multicolumn{2}{c}{P3} \\
+\texttt{E1a:} & \texttt{A = 1} && \texttt{E2a:} & \texttt{u = A} && \texttt{E3a:} & \texttt{v = B}\\
+& &&            \texttt{E2b:} & \texttt{B = 1} && \texttt{E3b:} & \texttt{w = A}\\
+\end{tabular}
+\end{center}
+
+\begin{choice}
+\item There are totally 8 possible final states of \texttt{u}, \texttt{v}, \texttt{w} as listed.
+For each one, indicate whether it is valid or invalid under a sequential consistency model.
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|c|ccc|c|}
+\hline
+Case & \multicolumn{3}{|c|}{Final states} & Valid? (Y/N) \\
+\hline
+Case 1: & \texttt{u} = 0 & \texttt{v} = 0 & \texttt{w} = 0 & 
+%% Indicate whether valid (Y/N)
+Yes
+\\
+\hline
+Case 2: & \texttt{u} = 0 & \texttt{v} = 0 & \texttt{w} = 1 &  
+%% Indicate whether valid (Y/N)
+Yes
+\\
+\hline
+Case 3: & \texttt{u} = 0 & \texttt{v} = 1 & \texttt{w} = 0 &  
+%% Indicate whether valid (Y/N)
+Yes
+\\
+\hline
+Case 4: & \texttt{u} = 0 & \texttt{v} = 1 & \texttt{w} = 1 & 
+%% Indicate whether valid (Y/N)
+Yes
+\\
+\hline
+Case 5: & \texttt{u} = 1 & \texttt{v} = 0 & \texttt{w} = 0 &  
+%% Indicate whether valid (Y/N)
+Yes
+\\ 
+\hline
+Case 6: & \texttt{u} = 1 & \texttt{v} = 0 & \texttt{w} = 1 &  
+%% Indicate whether valid (Y/N)
+Yes
+\\
+\hline
+Case 7: & \texttt{u} = 1 & \texttt{v} = 1 & \texttt{w} = 0 &  
+%% Indicate whether valid (Y/N)
+No
+\\
+\hline
+Case 8: & \texttt{u} = 1 & \texttt{v} = 1 & \texttt{w} = 1 &  
+%% Indicate whether valid (Y/N)
+Yes
+\\
+\hline
+\end{tabular}
+\end{center}
+
+\item 
+Choose one of the final states that you think is invalid under sequential consistency.
+Prove that it is invalid.  (Refer to the operations by the event labels 
+\texttt{E1a}, \texttt{E2b}, etc.)
+
+\begin{answer}
+%% Provide your answer to 1B here
+Case 7 is invalid.  Consider the following execution:
+\begin{itemize}
+\item P1 executes and A is set to 1.
+\item P2 executes and u is set to 1(valid). P3 executes and v is set to 0 (unvalid).
+\item P3 executes and v is set to 1, w is set to 1.
+
+
+\end{itemize}
+\end{answer}
+
+\item To maintain the same possible final states (as in sequential
+  consistency) under weaker memory consistency model, one way is to
+  add fences that guarantee that all reads/writes prior to the fence
+  complete before any read/write after the fence. There are 8 possible
+  placements to add fences:
+\begin{center}
+\begin{tabular}{llcllcll}
+\multicolumn{2}{c}{P1} & \makebox[0.5in]{} &
+\multicolumn{2}{c}{P2} & \makebox[0.5in]{} &
+\multicolumn{2}{c}{P3} \\
+\multicolumn{2}{c}{\textit{${\it Fence}_1$}} &&  \multicolumn{2}{c}{\textit{${\it Fence}_2$}} && \multicolumn{2}{c}{\textit{${\it Fence}_3$}} \\
+\texttt{E1a:} & \texttt{A = 1} && \texttt{E2a:} & \texttt{u = A} && \texttt{E3a:} & \texttt{v = B}\\
+\multicolumn{2}{c}{\textit{${\it Fence}_4$}} &&  \multicolumn{2}{c}{\textit{${\it Fence}_5$}} && \multicolumn{2}{c}{\textit{${\it Fence}_6$}} \\
+& &&            \texttt{E2b:} & \texttt{B = 1} && \texttt{E3b:} & \texttt{w = A}\\
+\multicolumn{2}{c}{} &&  \multicolumn{2}{c}{\textit{${\it Fence}_7$}} && \multicolumn{2}{c}{\textit{${\it Fence}_8$}} \\
+\end{tabular}
+\end{center}
+ To minimize the number of necessary fences
+  (while maintaining sequential consistency), where would you place
+  the fences?  List a minimal set of fences, and argue that removing any one of
+  these could lead to a consistency violation.
+
+\begin{answer}
+%% Provide your answer to 1C here
+Fence8 should be enough to maintain sequential consistency. Only Case7 should not exist.
+If we fence after E3b, then E3a cannot execute without E3b. So consistency is maintained.
+
+\end{answer}
+
+\item
+Suppose you could use also use a storage fence or a load fence.
+Could you replace any of the full memory fences in your list with one
+of these?
+
+\begin{answer}
+%% Provide your answer to 1D here
+I have one fence in my list. I can replace it with a storage fence for w, and E3b, E3a will be executed in order.
+\end{answer}
+
+\end{choice}
+\newpage
+
+\section*{Problem 2: Cache Coherency}
+You are hired by Intel to design an invalidation based cache-coherent processor with a large number of cores.
+The 
+  main application for this processor will be to train a chess AI by playing games against itself for experiments. It is critical that it
+  doesn't play too many games during training to maintain the validity of the experiment, so we store how many
+  games are played in a shared counter:
+  \begin{lstlisting}
+  int num_games = 100000;
+  int games_played = 0;
+
+  // This code is run on each core
+  while (true) {
+    // Atomically get value of count prior to increment, and
+    // write incremented value to games_played
+    int val = atomic_add(&games_played, 1);   
+
+    if (val > num_games) break;
+    play_game()
+  }
+  \end{lstlisting}
+
+  Unsure on how to design the cache coherence of this processor, you check with one of the senior designers. She suggests that you 
+  should use a bus-based, snooping coherence implementation, rather than a directory-based protocol, because 
+ the broadcasting it performs would be more
+  efficient in this case. Do you agree or disagree? Why or why not?
+
+\begin{answer}
+% Enter your answer to 2 here
+I agree with senior designer because all cores need to know the value of games played. 
+So a bus-based protocol is more efficient because of this equal workload distribution.
+\end{answer}
+\end{document}
+
