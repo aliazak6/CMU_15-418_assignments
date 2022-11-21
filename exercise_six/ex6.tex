@@ -1,0 +1,222 @@
+%% You can use this file to create your answer for Exercise 1.  
+%% Fill in the places labeled by comments.
+%% Generate a PDF document by with the command `pdflatex ex1'.
+
+\documentclass[11pt]{article}
+
+
+\usepackage{times}
+\usepackage{listings}
+\usepackage{enumerate}
+\usepackage{courier}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{graphicx}
+
+
+\input{config-ex6}
+
+%% Page layout
+\oddsidemargin 0pt
+\evensidemargin 0pt
+\textheight 600pt
+\textwidth 469pt
+\setlength{\parindent}{0em}
+\setlength{\parskip}{1ex}
+
+%% Colored hyperlink 
+\newcommand{\cref}[2]{\href{#1}{\color{blue}#2}}
+
+%% Customization to listing
+\lstset{basicstyle=\ttfamily\small,language=C,morekeywords={cilk_synch,cilk_spawn}}
+
+%% Enumerate environment with alphabetic labels
+\newenvironment{choice}{\begin{enumerate}[A.]}{\end{enumerate}}
+%% Environment for supplying answers to problem
+\newenvironment{answer}{\begin{minipage}[c][1.5in]{\textwidth}}{\end{minipage}}
+
+
+\begin{document}
+                          
+\vspace*{0.3in}                            
+\begin{center}
+\LARGE
+15-418/618 \thisterm{} \\
+Exercise 6
+\end{center}
+
+\begin{center}
+\Large        
+\begin{tabular}{ll}
+\hline             
+Assigned: & \dateassigned{}  \\
+Due: &  \datedue{}, 11:00~pm  \\
+\hline       
+\end{tabular}
+\end{center} 
+
+\section*{Overview}
+
+This exercise is designed to help you better understand the lecture
+material and be prepared for the style of questions you will get on
+the exams.  The questions are designed to have simple answers.  Any
+explanation you provide can be brief---at most 3 sentences.  You
+should work on this on your own, since that's how things will be when
+you take an exam.
+
+You will submit an electronic version of this assignment to Canvas 
+as a PDF file.  For those of you familiar with the \LaTeX{} text 
+formatter, you can download the template and configuation files at: 
+\begin{center} 
+  \cref{\actualcoursehome/exercises/ex6.tex}{\visiblecoursehome/exercises/ex6.tex}\\
+  \cref{\actualcoursehome/exercises/config-ex6.tex}{\visiblecoursehome/exercises/config-ex6.tex}
+\end{center} 
+Instructions for how to use this template are included as comments in 
+the file.  Otherwise, you can use this PDF document as your starting 
+point.  You can either: 1) electronically modify the PDF, or 2) print 
+it out, write your answers by hand, and scan it.  In any case, we 
+expect your solution to follow the formatting of this document. 
+
+\newpage 
+
+\section*{Problem 1: Synchronization}
+
+You are tasked with creating a program that computes the sum of a
+randomly selected subset of the elements of a
+large array using multiple threads. The basic strategy is to use the
+following:
+
+\begin{lstlisting}[language=C]
+// global variables shared by all threads
+
+int values[N];  // assume N is very large
+int sum = 0;
+
+////////////////////////////////////////////////////////
+// per thread logic (assume thread_id, num_threads are defined as expected)
+
+for (int i=thread_id; i<N; i+=num_threads) {
+  if (random() & 0x1 == 1)  
+    sum += values[i];
+}
+\end{lstlisting}
+
+\begin{choice}
+\item
+You find the documentation for the
+\cref{https://gcc.gnu.org/onlinedocs/gcc-4.1.2/gcc/Atomic-Builtins.html}{GCC
+atomic builtins} and decide to implement the addition using
+\verb@__sync_fetch_and_add@.  Describe how you would modify the above code to do this.
+
+\begin{answer}
+\begin{lstlisting}[language=C]
+__sync_fetch_and_add(&sum, values[i]);
+\end{lstlisting}
+I would change the line sum+=values[i] to the above line.
+This will ensure that the sum is updated atomically.
+
+\end{answer}
+
+\newpage
+\item
+Your boss comes to you and says ``Great job, but we also need to keep
+track of how many times variable \texttt{sum} is updated, so that we
+can compute the average.  Fix the
+following code:''  
+
+\begin{lstlisting}[language=C]
+// global variables shared by all threads
+
+int values[N];  // assume N is very large
+int count = 0;
+int sum = 0;
+
+////////////////////////////////////////////////////////
+// per thread logic (assume thread_id, num_threads are defined as expected)
+
+for (int i=thread_id; i<N; i+=num_threads) {
+  if (random() & 0x1 == 1) {
+    sum += values[i];
+    count++;
+  }
+}
+\end{lstlisting}
+
+Using {\em only one} fetch-and-add in your
+thread routine, and with no other synchronization primitives, show how you could
+do this.  You may introduce additional global and local variables,
+and other computations.
+
+%% Modify the code below
+\begin{lstlisting}[language=C]
+// global variables shared by all threads
+
+int values[N];  // assume N is very large
+int count = 0;
+int sum = 0;
+int_prev_sum = 0;
+
+
+////////////////////////////////////////////////////////
+// per thread logic (assume thread_id, num_threads are defined as expected)
+for (int i=thread_id; i<N; i+=num_threads) {
+
+
+  if (random() & 0x1 == 1) {  
+
+    prev_sum = __sync_fetch_and_add(&sum, values[i]);
+    if((prev_sum != sum  && values[i]!=0 )|| (prev_sum == sum && values[i]==0)){
+      count++;
+    }
+    // this check ensures previous block is executed and since there are
+    no other operations between two operations,
+    count  value will be updated atomically as well.
+  }
+
+
+}
+\end{lstlisting}
+
+
+
+\end{choice}
+\newpage 
+
+\section*{Problem 2: Interconnection Network}
+Recall that \textit{bisection bandwidth} is a metric for interconnect performance where you perform an imaginary representative cut through the middle of the interconnect (dividing the set of processors in half) and then add up the number of wires that cross over that cut. Roughly speaking, bisection bandwidth helps to characterize the potential communication bandwidth when half of the machine is attempting to communicate with the other half of the machine.
+In this problem, we would like for you to characterize how the bisection bandwidth is expected to scale with the number of processors (P ) for each of the following types of interconnects. Please be sure to \textbf{ explain your answers} (we want more than just a formula).
+\begin{choice}
+
+\item How does bisection bandwidth scale with P for a \textbf{bus}?
+
+\begin{answer}
+% Enter your answer to 2A here
+All answers answered as follows. Think the network visually, cut it half,
+and count the number of wires that cross the cut.\newline
+Same because the bus is a single wire and bandwith doesn't increase with number of processors.
+\end{answer}
+\item How does bisection bandwidth scale with P for a \textbf{crossbar}?
+
+\begin{answer}
+% Enter your answer to 2B here
+$\sqrt{n}/4$ because the crossbar is a 2D array of wires. 
+When cutting in half the formula becomes $(n/2) * (n/2)$.
+\end{answer}
+\item How does bisection bandwidth scale with P for a \textbf{hypercube}?
+
+\begin{answer}
+% Enter your answer to 2C here
+Hypercube has $log(P)$ dimensions.Bisection bandwith formula becomes $P/2$.
+\end{answer}
+\newpage 
+\item \textbf{THIS QUESTION IS UNLRELATED TO THE PREVIOUS ONES}. Consider a parallel version of the 2D grid solver problem from class. The implementation uses a 2D tiled assignment of grid cells to processors. (Recall the grid solver updates all the red cells of the grid based on the value of each cellâ€™s neighbors, then all the black cells). Since the grid solver requires communication be- tween processors, you choose to buy a computer with a crossbar interconnect. Your friend observes your purchase and suggests there there is another network topology that would have provided the same performance at a lower cost. What is it? (Why is the performance the same?)
+
+\begin{answer}
+% Enter your answer to 2D here
+Mesh network. Cost is lower than the crossbar $O(N^2)$ vs $O(N)$.
+Latency is same because of application spesific layout.
+Grid solver only requires communication between neighbors.
+\end{answer}
+\end{choice}
+
+\end{document}
