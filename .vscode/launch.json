@@ -37,8 +37,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/ali/CMU_15-418_assignments/assignment_three",
-      "program": "/home/ali/CMU_15-418_assignments/assignment_three/build/Debug/outDebug",
+      "cwd": "/home/ali/CMU_15-418_assignments/exercise_seven",
+      "program": "/home/ali/CMU_15-418_assignments/exercise_seven/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
